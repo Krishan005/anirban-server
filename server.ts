@@ -11,7 +11,7 @@ dotenv.config();
 const app = express();
 
 const corsOptions = {
-    origin: ["*"]
+    origin: ["*", "https://jade-chebakia-c1405a.netlify.app"]
 }
 
 app.use(cors(corsOptions));
