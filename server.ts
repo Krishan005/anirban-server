@@ -14,7 +14,7 @@ const corsOptions = {
     origin: ["http://localhost:3000"]
 }
 
-app.use(cors(corsOptions));
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use("/storages", express.static(path.join(__dirname, "storages")));
