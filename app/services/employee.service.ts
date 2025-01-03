@@ -11,209 +11,11 @@ export async function saveEmployeeDoc(doc: EmployeeDocument) {
 
 export async function findAllEmployeeDocs() {
   try {
-    return await employeeModel.aggregate([{
-      $project: {
-        __v: 0
-      }
-    }]);
+    return await employeeModel.find().lean();
   } catch (error: any) {
     throw new Error(error);
   }
 }
-
-export async function findAllEmployeeTreeDocs() {
-  try {
-    const result = await employeeModel.aggregate([
-      {
-        $match: {
-          designation: "CEO"
-        }
-      },
-      {
-        $lookup: {
-          from: "employees", // The collection name in MongoDB
-          localField: "_id",
-          foreignField: "reporting",
-          as: "children"
-        }
-      },
-      {
-        $lookup: {
-          from: "employees", // The collection name in MongoDB
-          localField: "children._id", // Reference each child's _id to find grandchildren
-          foreignField: "reporting",
-          as: "grandchildren"
-        }
-      },
-      {
-        $lookup: {
-          from: "employees", // The collection name in MongoDB
-          localField: "grandchildren._id", // Reference each grandchild's _id to find supergrandchildren
-          foreignField: "reporting",
-          as: "supergrandchildren"
-        }
-      },
-      {
-        $lookup: {
-          from: "employees", // The collection name in MongoDB
-          localField: "supergrandchildren._id", // Reference each supergrandchild's _id to find superjiograndchildren
-          foreignField: "reporting",
-          as: "superjiograndchildren"
-        }
-      },
-      {
-        $project: {
-          _id: 1,
-          fullName: 1,
-          designation: 1,
-          picture: 1,
-          children: {
-            $map: {
-              input: "$children",
-              as: "child",
-              in: {
-                expanded: true,
-                type: "person",
-                data: {
-                  image: "$$child.picture",
-                  name: "$$child.fullName",
-                  title: "$$child.designation"
-                },
-                children: {
-                  $let: {
-                    vars: {
-                      childId: "$$child._id"
-                    },
-                    in: {
-                      $ifNull: [
-                        {
-                          $map: {
-                            input: {
-                              $filter: {
-                                input: "$grandchildren",
-                                as: "grandchild",
-                                cond: { $eq: ["$$grandchild.reporting", "$$childId"] }
-                              }
-                            },
-                            as: "grandchild",
-                            in: {
-                              expanded: true,
-                              type: "person",
-                              data: {
-                                image: "$$grandchild.picture",
-                                name: "$$grandchild.fullName",
-                                title: "$$grandchild.designation"
-                              },
-                              children: {
-                                $let: {
-                                  vars: {
-                                    grandchildId: "$$grandchild._id"
-                                  },
-                                  in: {
-                                    $ifNull: [
-                                      {
-                                        $map: {
-                                          input: {
-                                            $filter: {
-                                              input: "$supergrandchildren",
-                                              as: "supergrandchild",
-                                              cond: { $eq: ["$$supergrandchild.reporting", "$$grandchildId"] }
-                                            }
-                                          },
-                                          as: "supergrandchild",
-                                          in: {
-                                            expanded: true,
-                                            type: "person",
-                                            data: {
-                                              image: "$$supergrandchild.picture",
-                                              name: "$$supergrandchild.fullName",
-                                              title: "$$supergrandchild.designation"
-                                            },
-                                            children: {
-                                              $let: {
-                                                vars: {
-                                                  supergrandchildId: "$$supergrandchild._id"
-                                                },
-                                                in: {
-                                                  $ifNull: [
-                                                    {
-                                                      $map: {
-                                                        input: {
-                                                          $filter: {
-                                                            input: "$superjiograndchildren",
-                                                            as: "superjiograndchild",
-                                                            cond: { $eq: ["$$superjiograndchild.reporting", "$$supergrandchildId"] }
-                                                          }
-                                                        },
-                                                        as: "superjiograndchild",
-                                                        in: {
-                                                          expanded: true,
-                                                          type: "person",
-                                                          data: {
-                                                            image: "$$superjiograndchild.picture",
-                                                            name: "$$superjiograndchild.fullName",
-                                                            title: "$$superjiograndchild.designation"
-                                                          }
-                                                        }
-                                                      }
-                                                    },
-                                                    [] // Default to an empty array if no superjiograndchildren
-                                                  ]
-                                                }
-                                              }
-                                            }
-                                          }
-                                        }
-                                      },
-                                      [] // Default to an empty array if no supergrandchildren
-                                    ]
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        },
-                        [] // Default to an empty array if no grandchildren
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      {
-        $addFields: {
-          expanded: true,
-          type: "person",
-          data: {
-            image: "$picture",
-            name: "$fullName",
-            title: "$designation"
-          }
-        }
-      },
-      {
-        $project: {
-          _id: 0, // Exclude _id if needed
-          expanded: 1,
-          type: 1,
-          data: 1,
-          children: 1
-        }
-      }
-    ]);
-
-    return result;
-  } catch (error: any) {
-    throw new Error(error);
-  }
-}
-
-
-
-
 
 export async function findEmployeeById(id: EmployeeDocument["_id"]) {
   try {
@@ -347,28 +149,43 @@ export async function collateEmployeeTree() {
 }
 
 type Employee = {
-    _id: string;
-    fullName: string;
-    designation: string;
-    date_of_birth: string;
-    experience_years: number;
-    picture: string;
-    reporting?: string;
-    expanded?: boolean;
-    type?: string;
-    children?: Employee[];
-  };
-  
-  export function buildHierarchy(
-    employees: Employee[],
-    parentId: string | undefined = undefined
-  ): Employee[] {
-    return employees
-      .filter((employee) => employee.reporting == parentId)
-      .map((employee) => ({
-        ...employee,
-        expanded: true,
-        type: "person",
-        children: buildHierarchy(employees, employee._id), // Recursively build children
-      }));
+  _id: string;
+  fullName: string;
+  designation: string;
+  date_of_birth: string;
+  experience_years: number;
+  picture: string;
+  reporting?: string;
+  expanded?: boolean;
+  type?: string;
+  children?: Employee[];
+};
+
+export function buildHierarchy(
+  employees: Employee[],
+  parentId: string | undefined = undefined
+): Employee[] {
+  return employees
+    .filter((employee) => employee.reporting == parentId)
+    .map((employee) => ({
+      ...employee,
+      expanded: true,
+      type: "person",
+      children: buildHierarchy(employees, employee._id), // Recursively build children
+    }));
+}
+
+export async function updateEmployeeById(
+  id: EmployeeDocument["_id"],
+  doc: EmployeeDocument
+) {
+  try {
+    return await employeeModel.findByIdAndUpdate(
+      id,
+      { $set: doc },
+      { new: true }
+    );
+  } catch (error: any) {
+    throw new Error(error);
   }
+}

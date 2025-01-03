@@ -18,7 +18,7 @@ const router = express.Router();
 // });
 
 router.post(
-  "/upload-image",
+  "/api/upload-image",
   upload.single("image") as unknown as express.RequestHandler,
   async (req: Request, res: Response) => {
     try {

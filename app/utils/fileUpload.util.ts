@@ -32,27 +32,21 @@ const uploadImage = async (req: Request, res: Response) => {
       });
     }
 
-    const serverDirectory = "server";
-    const uploadEndpoint = "/storages/uploads/images/";
+    const uploadEndpoint = "storages/uploads/images/";
     const fileName = `${Math.floor(100000 + Math.random() * 900000)}.${filetype}`;
-
-    // Resolve the full directory path
-    const uploadDir = path.resolve(__dirname, `../../${serverDirectory}${uploadEndpoint}`);
+    const uploadDir = path.resolve(__dirname, `../../${uploadEndpoint}`);
     const fullFilePath = path.join(uploadDir, fileName);
 
-    // Ensure the directory exists
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    // Write the file
     fs.writeFileSync(fullFilePath, req.file.buffer);
 
-    // Send success response
     return {
       status: true,
       message: "Image uploaded successfully.",
-      filePath: `${serverDirectory}${uploadEndpoint}${fileName}`,
+      filePath: `/${uploadEndpoint}${fileName}`,
     };
   } catch (error) {
     console.error("Error uploading image:", error);

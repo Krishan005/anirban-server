@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { ObjectId  } from "mongoose";
 import config from "config";
 
 export interface EmployeeDocument extends mongoose.Document {
@@ -6,7 +6,7 @@ export interface EmployeeDocument extends mongoose.Document {
     designation: string;
     date_of_birth: string;
     experience_years: number;
-    reporting: this["_id"];
+    reporting: ObjectId;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -29,8 +29,7 @@ const EMPLOYEE_SCHEMA = new mongoose.Schema({
     },
     reporting: {
         type: mongoose.Schema.Types.ObjectId,
-        default: null,
-        ref: "employee"
+        default: null
     },
     picture: {
         type: String,
